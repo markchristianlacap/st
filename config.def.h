@@ -5,7 +5,7 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Iosevka Nerd Font:Regular:size=14:antialias=true:autohint=true";
+static char *font = "FiraCode Nerd Font:Regular:size=14:antialias=true:autohint=true";
 static int borderpx = 2;
 
 /*
