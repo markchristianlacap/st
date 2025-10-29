@@ -2079,13 +2079,7 @@ strhandle(void)
 					ImageList *img = sixel_get_image(&sixel_state, term.c.x, term.c.y);
 					if (img) {
 						/* Image successfully parsed and stored */
-						/* Move cursor down to account for image height */
-						int rows = (sixel_state.height + win.ch - 1) / win.ch;
-						if (rows > 0) {
-							term.c.y += rows;
-							if (term.c.y >= term.row)
-								term.c.y = term.row - 1;
-						}
+						/* Note: cursor positioning is handled by the application */
 					}
 				}
 				sixel_parser_deinit(&sixel_state);
