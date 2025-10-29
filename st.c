@@ -1082,6 +1082,7 @@ kscrolldown(const Arg* a)
 
 	if (term.scr > 0) {
 		term.scr -= n;
+		selscroll(0, -n);
 		tfulldirt();
 	}
 }
@@ -1096,6 +1097,7 @@ kscrollup(const Arg* a)
 
 	if (term.scr <= HISTSIZE-n) {
 		term.scr += n;
+		selscroll(0, n);
 		tfulldirt();
 	}
 }
@@ -1170,8 +1172,9 @@ selscroll(int orig, int n)
 	} else if (BETWEEN(sel.nb.y, orig, term.bot)) {
 		sel.ob.y += n;
 		sel.oe.y += n;
-		if (sel.ob.y < term.top || sel.ob.y > term.bot ||
-		    sel.oe.y < term.top || sel.oe.y > term.bot) {
+		if (term.scr == 0 &&
+		    (sel.ob.y < term.top || sel.ob.y > term.bot ||
+		     sel.oe.y < term.top || sel.oe.y > term.bot)) {
 			selclear();
 		} else {
 			selnormalize();
