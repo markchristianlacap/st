@@ -1863,7 +1863,6 @@ xfinishdraw(void)
 	XImage *ximg;
 	int x, y, i, j;
 	unsigned char *xdata, *src;
-	unsigned long pixel;
 	
 	/* Render sixel images */
 	for (img = sixel_get_images(); img != NULL; img = img->next) {
@@ -1879,7 +1878,7 @@ xfinishdraw(void)
 		if (!xdata)
 			continue;
 		
-		/* Convert RGBA to X11 pixel format */
+		/* Convert RGBA to X11 BGRA pixel format */
 		src = img->data;
 		for (j = 0; j < img->height; j++) {
 			for (i = 0; i < img->width; i++) {
@@ -1889,25 +1888,11 @@ xfinishdraw(void)
 				unsigned char b = src[offset + 2];
 				unsigned char a = src[offset + 3];
 				
-				/* Only render if not fully transparent */
-				if (a > 0) {
-					/* Create pixel value for the current visual */
-					pixel = ((unsigned long)r << 16) |
-					        ((unsigned long)g << 8) |
-					        ((unsigned long)b);
-					
-					/* Store in XImage format */
-					xdata[offset + 0] = b;
-					xdata[offset + 1] = g;
-					xdata[offset + 2] = r;
-					xdata[offset + 3] = 0;
-				} else {
-					/* Transparent - use background */
-					xdata[offset + 0] = 0;
-					xdata[offset + 1] = 0;
-					xdata[offset + 2] = 0;
-					xdata[offset + 3] = 0;
-				}
+				/* Store in BGRA format for X11 */
+				xdata[offset + 0] = b;
+				xdata[offset + 1] = g;
+				xdata[offset + 2] = r;
+				xdata[offset + 3] = a;
 			}
 		}
 		
@@ -1928,6 +1913,15 @@ xfinishdraw(void)
 			XDestroyImage(ximg);
 		}
 		
+		free(xdata);
+	}
+	
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
+			win.h, 0, 0);
+	XSetForeground(xw.dpy, dc.gc,
+			dc.col[IS_SET(MODE_REVERSE)?
+				defaultfg : defaultbg].pixel);
+}
 		free(xdata);
 	}
 	

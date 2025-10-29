@@ -2,6 +2,9 @@ st - simple terminal
 --------------------
 st is a simple terminal emulator for X which sucks less.
 
+This fork includes sixel graphics protocol support for inline image display.
+See SIXEL.md for details about the image support implementation.
+
 
 Requirements
 ------------
