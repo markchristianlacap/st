@@ -2058,15 +2058,30 @@ strhandle(void)
 		xsettitle(strescseq.args[0]);
 		return;
 	case 'P': /* DCS -- Device Control String */
-		/* Check if this is a sixel sequence (contains 'q') */
+		/* Check if this is a sixel sequence */
+		/* Sixel format: ESC P [params] q <data> ESC \
+		 * where params are numeric (0-9) or semicolons
+		 * NOT things like "+q" which is XTGETTCAP */
 		if (strescseq.len > 0) {
 			int i;
 			int is_sixel = 0;
 			
-			/* Look for 'q' in the buffer to identify sixel */
+			/* Look for 'q' preceded by valid sixel parameters */
 			for (i = 0; i < strescseq.len; i++) {
 				if (strescseq.buf[i] == 'q') {
-					is_sixel = 1;
+					/* Check if this is a sixel 'q' by examining what comes before it */
+					if (i == 0) {
+						/* 'q' at start - valid sixel */
+						is_sixel = 1;
+					} else {
+						char prev = strescseq.buf[i-1];
+						/* Valid if preceded by digit, semicolon, or space */
+						if (prev >= '0' && prev <= '9')
+							is_sixel = 1;
+						else if (prev == ';' || prev == ' ')
+							is_sixel = 1;
+						/* NOT valid if preceded by '+' or other special chars */
+					}
 					break;
 				}
 			}
