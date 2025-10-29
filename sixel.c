@@ -250,6 +250,9 @@ sixel_parse_dcs(SixelState *state, const char *seq, int len)
 		if (c >= '?' && c <= '~') {
 			val = c - '?';
 			
+			fprintf(stderr, "sixel: Drawing sixel char '%c' (val=%d) at x=%d, y=%d, color=%d\n",
+			        c, val, state->x, state->y, state->color);
+			
 			for (i = 0; i < 6; i++) {
 				if (val & (1 << i))
 					sixel_put_pixel(state, state->x, state->y + i,
@@ -268,6 +271,9 @@ sixel_get_image(SixelState *state, int col, int row)
 	ImageList *img;
 	unsigned char *compacted;
 	int x, y, src_offset, dst_offset;
+	
+	fprintf(stderr, "sixel_get_image: width=%d, height=%d, data=%p\n",
+	        state->width, state->height, (void*)state->data);
 	
 	if (state->width <= 0 || state->height <= 0 || !state->data)
 		return NULL;
