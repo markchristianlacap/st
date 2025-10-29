@@ -1869,6 +1869,9 @@ xfinishdraw(void)
 		if (!img->data || img->width <= 0 || img->height <= 0)
 			continue;
 		
+		fprintf(stderr, "x: Rendering sixel image %dx%d at cell (%d,%d)\n",
+		        img->width, img->height, img->x, img->y);
+		
 		/* Calculate pixel position from cell position */
 		x = win.hborderpx + img->x * win.cw;
 		y = win.vborderpx + img->y * win.ch;

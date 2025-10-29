@@ -2090,12 +2090,20 @@ strhandle(void)
 				SixelState sixel_state;
 				sixel_parser_init(&sixel_state);
 				
+				fprintf(stderr, "st: Detected sixel sequence, len=%d\n", strescseq.len);
+				
 				if (sixel_parse_dcs(&sixel_state, strescseq.buf, strescseq.len) == 0) {
 					ImageList *img = sixel_get_image(&sixel_state, term.c.x, term.c.y);
 					if (img) {
 						/* Image successfully parsed and stored */
+						fprintf(stderr, "st: Sixel image created: %dx%d at (%d,%d)\n",
+						        img->width, img->height, img->x, img->y);
 						/* Note: cursor positioning is handled by the application */
+					} else {
+						fprintf(stderr, "st: Sixel parsing succeeded but no image created\n");
 					}
+				} else {
+					fprintf(stderr, "st: Sixel parsing failed\n");
 				}
 				sixel_parser_deinit(&sixel_state);
 			}
