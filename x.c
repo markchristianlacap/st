@@ -21,6 +21,7 @@ char *argv0;
 #include "st.h"
 #include "win.h"
 #include "hb.h"
+#include "sixel.h"
 
 /* types used in config.h */
 typedef struct {
@@ -1858,6 +1859,32 @@ xdrawline(Line line, int x1, int y1, int x2)
 void
 xfinishdraw(void)
 {
+	ImageList *img;
+	XImage *ximg;
+	int x, y;
+	
+	/* Render sixel images */
+	for (img = sixel_get_images(); img != NULL; img = img->next) {
+		if (!img->data)
+			continue;
+		
+		/* Calculate pixel position from cell position */
+		x = win.hborderpx + img->x * win.cw;
+		y = win.vborderpx + img->y * win.ch;
+		
+		/* Create XImage from RGBA data */
+		ximg = XCreateImage(xw.dpy, xw.vis, xw.depth, ZPixmap, 0,
+		                    (char *)img->data, img->width, img->height,
+		                    32, img->width * 4);
+		if (ximg) {
+			/* Put image to buffer */
+			XPutImage(xw.dpy, xw.buf, dc.gc, ximg, 0, 0, x, y,
+			          img->width, img->height);
+			ximg->data = NULL; /* Prevent XDestroyImage from freeing our data */
+			XDestroyImage(ximg);
+		}
+	}
+	
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
 			win.h, 0, 0);
 	XSetForeground(xw.dpy, dc.gc,

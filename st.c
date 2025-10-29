@@ -19,6 +19,7 @@
 
 #include "st.h"
 #include "win.h"
+#include "sixel.h"
 
 #if   defined(__linux)
  #include <pty.h>
@@ -1051,6 +1052,7 @@ tnew(int col, int row)
 	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
 	tresize(col, row);
 	treset();
+	sixel_init();
 }
 
 int tisaltscr(void)
@@ -2056,6 +2058,27 @@ strhandle(void)
 		xsettitle(strescseq.args[0]);
 		return;
 	case 'P': /* DCS -- Device Control String */
+		/* Check if this is a sixel sequence (starts with 'q') */
+		if (strescseq.len > 0 && strescseq.buf[0] == 'q') {
+			SixelState sixel_state;
+			sixel_parser_init(&sixel_state);
+			
+			if (sixel_parse_dcs(&sixel_state, strescseq.buf, strescseq.len) == 0) {
+				ImageList *img = sixel_get_image(&sixel_state, term.c.x, term.c.y);
+				if (img) {
+					/* Image successfully parsed and stored */
+					/* Move cursor down to account for image height */
+					int rows = (sixel_state.height + win.ch - 1) / win.ch;
+					if (rows > 0) {
+						term.c.y += rows;
+						if (term.c.y >= term.row)
+							term.c.y = term.row - 1;
+					}
+				}
+			}
+			sixel_parser_deinit(&sixel_state);
+		}
+		return;
 	case '_': /* APC -- Application Program Command */
 	case '^': /* PM -- Privacy Message */
 		return;
