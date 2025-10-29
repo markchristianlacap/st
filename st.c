@@ -1082,7 +1082,6 @@ kscrolldown(const Arg* a)
 
 	if (term.scr > 0) {
 		term.scr -= n;
-		selscroll(0, -n);
 		tfulldirt();
 	}
 }
@@ -1097,7 +1096,6 @@ kscrollup(const Arg* a)
 
 	if (term.scr <= HISTSIZE-n) {
 		term.scr += n;
-		selscroll(0, n);
 		tfulldirt();
 	}
 }
