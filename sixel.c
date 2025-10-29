@@ -8,6 +8,8 @@
 
 #define SIXEL_RGB(r, g, b) (0xFF000000 | ((r) << 16) | ((g) << 8) | (b))
 #define DECSIXEL_PALETTE_MAX 256
+#define SIXEL_MAX_WIDTH 4096
+#define SIXEL_MAX_HEIGHT 4096
 
 static ImageList *images_head = NULL;
 
@@ -67,6 +69,11 @@ sixel_parser_init(SixelState *state)
 	
 	state->ncolors = 16;
 	state->color = 0;
+	
+	/* Pre-allocate a reasonable buffer */
+	state->datasize = SIXEL_MAX_WIDTH * 100 * 4; /* Start with 100 rows */
+	state->data = xmalloc(state->datasize);
+	memset(state->data, 0, state->datasize);
 }
 
 void
@@ -81,8 +88,12 @@ static void
 sixel_ensure_capacity(SixelState *state, int size)
 {
 	if (size > state->datasize) {
-		state->datasize = size + 4096;
-		state->data = xrealloc(state->data, state->datasize);
+		int newsize = state->datasize;
+		while (newsize < size)
+			newsize *= 2;
+		state->data = xrealloc(state->data, newsize);
+		memset(state->data + state->datasize, 0, newsize - state->datasize);
+		state->datasize = newsize;
 	}
 }
 
@@ -94,12 +105,18 @@ sixel_put_pixel(SixelState *state, int x, int y, uint32_t color)
 	if (x < 0 || y < 0)
 		return;
 	
+	/* Limit to reasonable size */
+	if (x >= SIXEL_MAX_WIDTH || y >= SIXEL_MAX_HEIGHT)
+		return;
+	
+	/* Track maximum dimensions */
 	if (x >= state->width)
 		state->width = x + 1;
 	if (y >= state->height)
 		state->height = y + 1;
 	
-	offset = (y * state->width + x) * 4;
+	/* Use fixed maximum width for offset calculation to avoid reorganization */
+	offset = (y * SIXEL_MAX_WIDTH + x) * 4;
 	sixel_ensure_capacity(state, offset + 4);
 	
 	state->data[offset + 0] = (color >> 16) & 0xFF; /* R */
@@ -249,13 +266,28 @@ ImageList *
 sixel_get_image(SixelState *state, int col, int row)
 {
 	ImageList *img;
+	unsigned char *compacted;
+	int x, y, src_offset, dst_offset;
 	
 	if (state->width <= 0 || state->height <= 0 || !state->data)
 		return NULL;
 	
+	/* Compact the data from SIXEL_MAX_WIDTH stride to actual width */
+	compacted = xmalloc(state->width * state->height * 4);
+	for (y = 0; y < state->height; y++) {
+		for (x = 0; x < state->width; x++) {
+			src_offset = (y * SIXEL_MAX_WIDTH + x) * 4;
+			dst_offset = (y * state->width + x) * 4;
+			compacted[dst_offset + 0] = state->data[src_offset + 0];
+			compacted[dst_offset + 1] = state->data[src_offset + 1];
+			compacted[dst_offset + 2] = state->data[src_offset + 2];
+			compacted[dst_offset + 3] = state->data[src_offset + 3];
+		}
+	}
+	
 	/* Allocate new image */
 	img = xmalloc(sizeof(ImageList));
-	img->data = state->data;
+	img->data = compacted;
 	img->width = state->width;
 	img->height = state->height;
 	img->x = col;
@@ -264,9 +296,6 @@ sixel_get_image(SixelState *state, int col, int row)
 	img->next = images_head;
 	images_head = img;
 	
-	/* Transfer ownership of data to image */
-	state->data = NULL;
-	state->datasize = 0;
-	
+	/* Keep the parser data for potential reuse */
 	return img;
 }
