@@ -2098,7 +2098,8 @@ strhandle(void)
 						/* Image successfully parsed and stored */
 						fprintf(stderr, "st: Sixel image created: %dx%d at (%d,%d)\n",
 						        img->width, img->height, img->x, img->y);
-						/* Note: cursor positioning is handled by the application */
+						/* Trigger a redraw to display the image */
+						tfulldirt();
 					} else {
 						fprintf(stderr, "st: Sixel parsing succeeded but no image created\n");
 					}

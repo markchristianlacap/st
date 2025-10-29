@@ -1907,13 +1907,19 @@ xfinishdraw(void)
 			/* Set byte order */
 			ximg->byte_order = LSBFirst;
 			
+			fprintf(stderr, "x: Putting image to buffer at pixel coords (%d,%d)\n", x, y);
+			
 			/* Put image to buffer */
 			XPutImage(xw.dpy, xw.buf, dc.gc, ximg, 0, 0, x, y,
 			          img->width, img->height);
 			
+			fprintf(stderr, "x: XPutImage completed successfully\n");
+			
 			/* Free the image structure but not our data yet */
 			ximg->data = NULL;
 			XDestroyImage(ximg);
+		} else {
+			fprintf(stderr, "x: XCreateImage failed!\n");
 		}
 		
 		free(xdata);
