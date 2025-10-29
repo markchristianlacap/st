@@ -1,0 +1,28 @@
+# Build artifacts
+*.o
+st
+st-*.tar.gz
+
+# Editor backups and temporary files
+*~
+*.swp
+*.swo
+.*.swp
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE directories
+.vscode/
+.idea/
+*.sublime-*
+
+# Debug files
+*.dSYM/
+vgcore.*
+core
+
+# Patch reject files
+*.rej
+*.orig
