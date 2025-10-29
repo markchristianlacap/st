@@ -2058,25 +2058,38 @@ strhandle(void)
 		xsettitle(strescseq.args[0]);
 		return;
 	case 'P': /* DCS -- Device Control String */
-		/* Check if this is a sixel sequence (starts with 'q') */
-		if (strescseq.len > 0 && strescseq.buf[0] == 'q') {
-			SixelState sixel_state;
-			sixel_parser_init(&sixel_state);
+		/* Check if this is a sixel sequence (contains 'q') */
+		if (strescseq.len > 0) {
+			int i;
+			int is_sixel = 0;
 			
-			if (sixel_parse_dcs(&sixel_state, strescseq.buf, strescseq.len) == 0) {
-				ImageList *img = sixel_get_image(&sixel_state, term.c.x, term.c.y);
-				if (img) {
-					/* Image successfully parsed and stored */
-					/* Move cursor down to account for image height */
-					int rows = (sixel_state.height + win.ch - 1) / win.ch;
-					if (rows > 0) {
-						term.c.y += rows;
-						if (term.c.y >= term.row)
-							term.c.y = term.row - 1;
-					}
+			/* Look for 'q' in the buffer to identify sixel */
+			for (i = 0; i < strescseq.len; i++) {
+				if (strescseq.buf[i] == 'q') {
+					is_sixel = 1;
+					break;
 				}
 			}
-			sixel_parser_deinit(&sixel_state);
+			
+			if (is_sixel) {
+				SixelState sixel_state;
+				sixel_parser_init(&sixel_state);
+				
+				if (sixel_parse_dcs(&sixel_state, strescseq.buf, strescseq.len) == 0) {
+					ImageList *img = sixel_get_image(&sixel_state, term.c.x, term.c.y);
+					if (img) {
+						/* Image successfully parsed and stored */
+						/* Move cursor down to account for image height */
+						int rows = (sixel_state.height + win.ch - 1) / win.ch;
+						if (rows > 0) {
+							term.c.y += rows;
+							if (term.c.y >= term.row)
+								term.c.y = term.row - 1;
+						}
+					}
+				}
+				sixel_parser_deinit(&sixel_state);
+			}
 		}
 		return;
 	case '_': /* APC -- Application Program Command */
