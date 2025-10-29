@@ -1861,28 +1861,74 @@ xfinishdraw(void)
 {
 	ImageList *img;
 	XImage *ximg;
-	int x, y;
+	int x, y, i, j;
+	unsigned char *xdata, *src;
+	unsigned long pixel;
 	
 	/* Render sixel images */
 	for (img = sixel_get_images(); img != NULL; img = img->next) {
-		if (!img->data)
+		if (!img->data || img->width <= 0 || img->height <= 0)
 			continue;
 		
 		/* Calculate pixel position from cell position */
 		x = win.hborderpx + img->x * win.cw;
 		y = win.vborderpx + img->y * win.ch;
 		
-		/* Create XImage from RGBA data */
-		ximg = XCreateImage(xw.dpy, xw.vis, xw.depth, ZPixmap, 0,
-		                    (char *)img->data, img->width, img->height,
+		/* Allocate temporary buffer for XImage data */
+		xdata = malloc(img->width * img->height * 4);
+		if (!xdata)
+			continue;
+		
+		/* Convert RGBA to X11 pixel format */
+		src = img->data;
+		for (j = 0; j < img->height; j++) {
+			for (i = 0; i < img->width; i++) {
+				int offset = (j * img->width + i) * 4;
+				unsigned char r = src[offset + 0];
+				unsigned char g = src[offset + 1];
+				unsigned char b = src[offset + 2];
+				unsigned char a = src[offset + 3];
+				
+				/* Only render if not fully transparent */
+				if (a > 0) {
+					/* Create pixel value for the current visual */
+					pixel = ((unsigned long)r << 16) |
+					        ((unsigned long)g << 8) |
+					        ((unsigned long)b);
+					
+					/* Store in XImage format */
+					xdata[offset + 0] = b;
+					xdata[offset + 1] = g;
+					xdata[offset + 2] = r;
+					xdata[offset + 3] = 0;
+				} else {
+					/* Transparent - use background */
+					xdata[offset + 0] = 0;
+					xdata[offset + 1] = 0;
+					xdata[offset + 2] = 0;
+					xdata[offset + 3] = 0;
+				}
+			}
+		}
+		
+		/* Create XImage from converted data */
+		ximg = XCreateImage(xw.dpy, xw.vis, 24, ZPixmap, 0,
+		                    (char *)xdata, img->width, img->height,
 		                    32, img->width * 4);
 		if (ximg) {
+			/* Set byte order */
+			ximg->byte_order = LSBFirst;
+			
 			/* Put image to buffer */
 			XPutImage(xw.dpy, xw.buf, dc.gc, ximg, 0, 0, x, y,
 			          img->width, img->height);
-			ximg->data = NULL; /* Prevent XDestroyImage from freeing our data */
+			
+			/* Free the image structure but not our data yet */
+			ximg->data = NULL;
 			XDestroyImage(ximg);
 		}
+		
+		free(xdata);
 	}
 	
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
